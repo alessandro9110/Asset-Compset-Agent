@@ -1,0 +1,5 @@
+langgraph==0.3.25
+langchain_openai==0.3.12
+langgraph-cli[inmem]
+googlemaps==4.10.0
+streamlit=1.45.0
