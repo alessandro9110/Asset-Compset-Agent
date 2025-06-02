@@ -172,3 +172,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+.checkpoint/
+checkpoint/sam_vit_b_01ec64.pth
