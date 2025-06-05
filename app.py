@@ -3,12 +3,13 @@ import os
 import yaml
 from dotenv import load_dotenv
 
-from typing import TypedDict,Annotated
-from langgraph.graph import StateGraph, MessagesState, START, END
+from langgraph.graph import StateGraph,  START, END
 from langchain_openai import AzureChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
-from langgraph.prebuilt import tools_condition # type: ignore
-from langgraph.prebuilt import ToolNode # type: ignore
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+from langgraph.graph.message import add_messages
+from langchain_core.tools import tool
+from langgraph.prebuilt import tools_condition
+from langgraph.prebuilt import ToolNode
 
 from IPython.display import Image, display
 
@@ -17,6 +18,8 @@ from utils.states import AgentState
 from tools.analisi_asset import *
 from tools.analisi_compset import *
 from tools.compset import *
+
+import streamlit as st
 
 load_dotenv(override=True)
 
@@ -30,31 +33,22 @@ model = AzureChatOpenAI(
 
 
 # Create tools
-tools_for_analisi_asset = [add, multiply, divide]
-tools_for_compset= [add, multiply, divide]
-tools_for_analisi_compset = [add, multiply, divide]
+tools_for_analisi_asset = [get_coordinates, calculate_distance_to_city_centers, get_distance_between_coordinates, download_satellite_image, estimate_scale, calculate_area]
+tools_for_compset = [get_coordinates]
+tools_for_analisi_compset = [get_coordinates]
 
-model_with_tools_for_analisi_asset   = model.bind_tools(tools_for_analisi_asset, parallel_tool_calls=False)
+
 model_with_tools_for_compset         = model.bind_tools(tools_for_compset, parallel_tool_calls=False)
 model_with_tools_for_analisi_compset = model.bind_tools(tools_for_analisi_compset, parallel_tool_calls=False)
 
-
 # Import prompts
-with open("prompts/analisi_asset.yaml", 'r') as stream:
-    analisi_asset_prompt = yaml.safe_load(stream)
 
-
-# Create system message for Agents
-sys_msg_analisi_asset = SystemMessage(content=analisi_asset_prompt['system_prompt'])
 sys_msg_compset = SystemMessage(content=""" """)
 sys_msg_analisi_compset = SystemMessage(content=""" """)
 
 # Define Agents
 ######################## ANALISI ASSET AGENT ###################################################
-def analisi_asset_agent(state: AgentState):
-   messages = [model_with_tools_for_analisi_asset.invoke([sys_msg_analisi_asset] + state["messages"])]
-   analisi_asset_result = messages[-1]
-   return {"messages": messages ,"analisi_asset_result": analisi_asset_result}
+
 
 ######################## COMPSET AGENT #########################################################
 def compset_agent(state: AgentState):
@@ -117,6 +111,7 @@ builder.add_conditional_edges(
         "next_agent": "analisi_compset",
     },
 )
+
 builder.add_edge("tools_for_compset", "compset")
 
 builder.add_conditional_edges(
@@ -127,6 +122,7 @@ builder.add_conditional_edges(
         "next_agent": END,
     },
 )
+
 builder.add_edge("tools_for_analisi_compset", "analisi_compset")
 #builder.add_edge("respond", END)
 
@@ -134,13 +130,37 @@ react_graph = builder.compile()
 
 
 # Save image
-image = Image(react_graph.get_graph(xray=True).draw_mermaid_png())
+#image = Image(react_graph.get_graph(xray=True).draw_mermaid_png())
 
 
 
 # Run Agent
-messages = [HumanMessage(content="You need to analyze the hotel Les Terraces d'Eze")]
-messages = react_graph.invoke({"messages": messages}, interrupt_before="analisi_compset")
-for m in messages['messages']:
-    m.pretty_print()
+#messages = [HumanMessage(content="You need to analyze the hotel Les Terraces d'Eze")]
+#messages = react_graph.invoke({"messages": messages}, interrupt_before="analisi_compset")
+#for m in messages['messages']:
+#    m.pretty_print()
 
+if "messages" not in st.session_state:
+    # default initial message to render in message state
+    st.session_state["messages"] = [AIMessage(content="How can I help you?")]
+
+for msg in st.session_state.messages:
+    # https://docs.streamlit.io/develop/api-reference/chat/st.chat_message
+    # we store them as AIMessage and HumanMessage as its easier to send to LangGraph
+    if type(msg) == AIMessage:
+        st.chat_message("assistant").write(msg.content)
+    if type(msg) == HumanMessage:
+        st.chat_message("user").write(msg.content)
+
+if prompt := st.chat_input():
+    st.session_state.messages.append(HumanMessage(content=prompt))
+    st.chat_message("user").write(prompt)
+
+with st.chat_message("assistant"):
+    msg_placeholder = st.empty() 
+    # create a new placeholder for streaming messages and other events, and give it context
+
+    messages = react_graph.invoke({"messages": st.session_state.messages}, interrupt_before="analisi_compset", config={"recursion_limit": 1000})
+    last_msg = messages["messages"][-1].content
+    st.session_state.messages.append(AIMessage(content=last_msg))  # Add that last message to the st_message_state
+    msg_placeholder.write(messages["messages"])

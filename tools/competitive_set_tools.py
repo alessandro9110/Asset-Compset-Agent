@@ -5,7 +5,8 @@ from PIL import Image
 from io import BytesIO
 import math
 import numpy as np
-import torch
+from langchain.agents import Tool
+from langgraph.prebuilt import ToolNode
 import base64
 from segment_anything import sam_model_registry, SamPredictor
 
@@ -38,7 +39,6 @@ def get_coordinates(poi_name:str) -> dict:
         location = geocode_result[0]['geometry']['location']
         return {'latitude': location['lat'], 'longitude': location['lng']}
     return None
-
 
 @tool
 def calculate_distance_to_city_centers(asset_coords:dict, city_coords_list:list):
@@ -176,22 +176,6 @@ def calculate_scale(point1: dict, point2: dict, distance_meters: float) -> dict:
         "meters_per_pixel": meters_per_pixel
     }
 
-# Load the SAM model once
-#def load_sam_model(checkpoint_path: str, model_type: str = "vit_b") -> SamPredictor:
-#    """
-#    Loads the SAM model and returns a predictor instance.
-#
-#    Args:
-#        checkpoint_path (str): Path to the SAM model checkpoint.
-#        model_type (str): Type of SAM model (vit_b, vit_l, vit_h).
-#
-#    Returns:
-#        SamPredictor: Initialized SAM predictor.
-#    """
-#    sam = sam_model_registry[model_type](checkpoint=checkpoint_path)
-#    sam.to("cuda" if torch.cuda.is_available() else "cpu")
-#    return SamPredictor(sam)
-
 @tool
 def segment_building_base64(image_base64: str, predictor: SamPredictor) -> list[list[int]]:
     """
@@ -224,4 +208,15 @@ def segment_building_base64(image_base64: str, predictor: SamPredictor) -> list[
     best_mask = masks[np.argmax(scores)]
     Image.fromarray((best_mask.astype(np.uint8) * 255).astype(np.uint8)).save("mask.png")
     return best_mask.astype(int).tolist()
-    
+
+
+competitive_set_list = [get_coordinates,
+                                 calculate_distance_to_city_centers,
+                                 get_distance_between_coordinates,
+                                 download_satellite_image,
+                                 estimate_scale,
+                                 calculate_area,
+                                 calculate_scale,
+                                 segment_building_base64]
+
+competitive_set_tools = ToolNode(competitive_set_list)

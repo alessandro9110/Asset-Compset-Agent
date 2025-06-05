@@ -6,6 +6,6 @@ class AgentState(TypedDict):
     # SUperificie totalde dell'area in metri quadri
     messages: Annotated[list[AnyMessage], add_messages]
     
-    analisi_asset_result: str
-    compset_result: str
+    initial_asset_assessment_result: str
+    competitive_set_result: str
     analisi_compset_result: str
