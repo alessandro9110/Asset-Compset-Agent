@@ -1,14 +1,21 @@
 import os
 import yaml
+from pprint import pprint
+import json
 from dotenv import load_dotenv
 
 from langchain_core.messages import SystemMessage
 from langchain_openai import AzureChatOpenAI
+from pydantic import ValidationError
+
+
+from utils.states import AgentState, PositionAnalysis
+from langchain_core.messages import AIMessage
+from utils.common import extract_json
+from tools.initial_asset_assessment_tools import initial_asset_assessment_list
+
 
 load_dotenv(override=True)
-
-from utils.states import AgentState
-
 # Create model as brain
 model = AzureChatOpenAI(
     azure_deployment=os.getenv("AZURE_OPENAI_MODEL"),
@@ -26,6 +33,39 @@ sys_msg_initial_asset = SystemMessage(content=initial_asset_prompt['system_promp
 
 
 def initial_asset_assessment_agent(state: AgentState):
-   messages = [model.invoke([sys_msg_initial_asset] + state["messages"])]
-   result = messages[-1]
-   return {"messages": messages ,"initial_asset_assessment_result": result}
+
+    # Costruisci la history dei messaggi
+    messages = [sys_msg_initial_asset] + state["messages"]
+
+    model_with_tools = model.bind_tools(initial_asset_assessment_list)
+    # Invoca il modello
+    result = model_with_tools.invoke(messages)
+    messages.append(result)
+    #print("🔍 Risultato del modello:")
+    #print(result.content)
+
+
+    
+    # Torna lo stato aggiornato
+    return {**state,
+        "messages": messages,
+        "position_analysis": result.content
+    }
+
+def initial_asset_assessment_output(state: dict) -> dict:
+    """Estrae e formatta il risultato strutturato dal messaggio AI finale"""
+    messages = state.get("messages", [])
+    last_msg = messages[-1] if messages else None
+
+    if not isinstance(last_msg, AIMessage):
+        raise ValueError("Ultimo messaggio non valido o mancante")
+
+    try:
+        result = extract_json(last_msg.content)
+    except Exception as e:
+        raise ValueError(f"Errore nel parsing JSON: {e}")
+
+    return {
+        **state,
+        "initial_asset_assessment_result": result
+    }
