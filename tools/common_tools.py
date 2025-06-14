@@ -13,13 +13,13 @@ SERP_API_KEY = os.getenv("SERP_API_KEY")
 @tool
 def web_search(query: str) -> str:
     """
-    Performs a Google web search using SerpAPI and returns the main text snippets from the top results.
+    Performs a Google web search using SerpAPI and returns the main text snippets from the top results and the urls
 
     Args:
         query (str): The search query (e.g., 'Les Terrasses d’Eze number of rooms surface spa').
 
     Returns:
-        str: Concatenated text snippets from the first 10 organic results.
+        list: List of dicts with 'snippet' and 'link' for each result
 
     Example:
         >>> web_search("Les Terrasses d’Eze number of rooms surface spa")
@@ -41,6 +41,12 @@ def web_search(query: str) -> str:
     response = requests.get(url, params=params)
     response.raise_for_status()
     data = response.json()
-    snippets = [res["snippet"] for res in data.get("organic_results", []) if "snippet" in res]
-    return "\n".join(snippets)
+    results = []
+    for res in data.get("organic_results", []):
+        if "snippet" in res:
+            results.append({
+                "snippet": res["snippet"],
+                "link": res.get("link")
+            })
+    return results
 

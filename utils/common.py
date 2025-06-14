@@ -4,37 +4,26 @@ import json
 
 from langchain_core.tools import tool
 
-def extract_json(text: str) -> dict:
+def extract_json_fallback(text):
     """
-    Estrae il primo oggetto JSON valido da un testo generato da LLM.
-    Funziona anche se il testo è formattato con markdown o contiene altre parti non JSON.
-
-    Args:
-        text (str): Testo in output da un AIMessage
-
-    Returns:
-        dict: Dizionario Python risultante dal parsing del JSON
-
-    Raises:
-        ValueError: Se non riesce ad estrarre un JSON valido
+    Tries to extract a JSON object from the given text.
+    Returns a dict if successful, else an empty dict.
     """
-    # Regex per blocchi ```json ... ``` oppure {...}
-    json_patterns = [
-        r"```json\s*(\{.*?\})\s*```",  # blocco markdown ```json
-        r"```[\s]*({.*?})[\s]*```",    # blocco markdown senza specificatore
-        r"(\{.*\})"                    # prima struttura JSON valida
-    ]
+    try:
+        # Primo tentativo: parsing diretto
+        return json.loads(text)
+    except Exception:
+        pass
 
-    for pattern in json_patterns:
-        matches = re.findall(pattern, text, re.DOTALL)
-        for match in matches:
-            try:
-                return json.loads(match)
-            except json.JSONDecodeError:
-                continue
-
-    raise ValueError("❌ Nessun oggetto JSON valido trovato nel testo.")
-
+    # Fallback: cerca il primo oggetto tra { ... }
+    match = re.search(r'\{.*\}', text, re.DOTALL)
+    if match:
+        json_str = match.group(0)
+        try:
+            return json.loads(json_str)
+        except Exception:
+            pass
+    return {}
 
 
 
