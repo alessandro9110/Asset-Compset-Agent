@@ -59,16 +59,22 @@ def calculate_distance_to_city_centers(asset_coords:dict, city_coords_list:list)
 @tool
 def get_distance_between_coordinates(point1: dict, point2: dict) -> dict:
     """
-    Calculates the travel distance in meters between two geographic coordinates using Google Maps Distance Matrix API.
+    Calculates the travel distance in meters between two geographic coordinates using Google Maps Directions API.
 
     Args:
-        point1 (dict): A dictionary with "latitude" and "longitude" for the origin.
-        point2 (dict): A dictionary with "latitude" and "longitude" for the destination.
+        point1 (dict): A dictionary with "latitude" and "longitude" for the origin. Example: {"latitude": 43.7, "longitude": 7.3}
+        point2 (dict): A dictionary with "latitude" and "longitude" for the destination. Example: {"latitude": 43.8, "longitude": 7.4}
 
     Returns:
         dict: A dictionary containing:
             - distance_meters (float): Travel distance between the two points in meters.
             - duration_seconds (float): Estimated travel time in seconds.
+
+    Usage Example:
+        get_distance_between_coordinates(
+            point1={"latitude": 43.7, "longitude": 7.3},
+            point2={"latitude": 43.8, "longitude": 7.4}
+        )
     """
 
     origins = (point1["latitude"], point1["longitude"])
@@ -89,10 +95,9 @@ def get_distance_between_coordinates(point1: dict, point2: dict) -> dict:
     }
 
 # Tools for Section 2 - Asset Dimensions
+# facciamo solo ricerche online
 
-
-
-
+# Tools for Section 3 - Asset Dimensions
 
 # List of tools for initial asset assessment
 # These tools will be used by the initial asset assessment agent to gather information about assets and their locations.
