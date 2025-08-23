@@ -14,6 +14,7 @@ class PositionAnalysis(BaseModel):
     context: str =  Field(description="Contextual information about the hotel and its surroundings (e.g. urban, semi-urban, isolated)")     
     accessibility: str = Field(description="Accessibility of the hotel (e.g. well-connected, remote, etc.)")
     summary: str = Field(description="Summary of the position analysis")
+
 class ValueWithSource(BaseModel):
     value: Optional[str] = Field(description="Extracted value, or null if not found")
     source_url: Optional[str] = Field(description="Source URL from which the value was extracted, or null")
@@ -32,5 +33,5 @@ class AssetDimensions(BaseModel):
 class AgentState(TypedDict):
     """The state of the agent."""
     messages: Annotated[list[AnyMessage], add_messages]
-    position_analysis: PositionAnalysis
-    asset_dimensions: AssetDimensions 
+    position_analysis: Optional[PositionAnalysis]=None
+    asset_dimensions: Optional[AssetDimensions]=None

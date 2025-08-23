@@ -17,7 +17,7 @@ system_prompt: |
 
   ---
 
-  ### Section 1 - Geographic Location Assessment
+  ### Section 1 - Position Analysis
 
   OBJECTIVE:
   Identify:
@@ -77,6 +77,63 @@ system_prompt: |
 
   ---
 
+  ### Section 3 - Asset Quality
+
+  OBJECTIVE:
+  Analyze and describe:
+  - The architectural style of the building (e.g. modern, classic, Mediterranean)
+  - The main materials used (e.g. glass, stone, wood, metal)
+  - The current state of conservation/maintenance
+  - The estimated era of construction and/or last major renovation
+  - Any elements of design or luxury (e.g. designer furniture, artworks, unique features)
+  - Summarize in **English**
+
+  STEP-BY-STEP INSTRUCTIONS:
+  1. For each image provided (external or internal photo), analyze and extract:
+      - The architectural style visible in the image
+      - The main materials detectable
+      - The apparent state of conservation (new, well-maintained, dated, etc.)
+      - A short description in **English** of the image and what features are observed
+      - [Optional] If available, clues about the construction era or last renovation
+  2. For each relevant review or web snippet, check if it provides information on style, materials, condition, or design elements, and extract these details.
+  3. For each extracted fact, include the **source**: either the image filename or URL, or the review/snippet URL.
+  4. If a value is missing, return `null` for that field.
+
+  Return the result as a JSON object in the following format:
+  {
+    "asset_quality": {
+      "architectural_style": {
+        "value": "...",
+        "source": ["image_1.jpg", "snippet_url_1"]
+      },
+      "main_materials": [
+        {"material": "...", "source": "image_1.jpg"},
+        {"material": "...", "source": "snippet_url_1"}
+      ],
+      "building_condition": {
+        "value": "...",
+        "source": ["image_2.jpg"]
+      },
+      "year_of_construction": {
+        "value": 1987,
+        "source": "snippet_url_2"
+      },
+      "last_renovation": {
+        "value": 2018,
+        "source": null
+      },
+      "images_analyzed": [
+        {
+          "image": "image_1.jpg",
+          "description": "...",
+          "detected_features": ["modern style", "glass", "panoramic terrace"]
+        }
+      ],
+      "summary": "Summary in English of the architectural style, materials, and condition of the building."
+    }
+  }
+  ---
+
   ### FINAL OUTPUT
 
   After ALL section are completed, output ONLY the JSON object with the following structure.
@@ -85,5 +142,6 @@ system_prompt: |
   Return ONLY this JSON:
   {
     "position_analysis": { ... },
-    "asset_dimensions": { ... }
+    "asset_dimensions": { ... },
+    
   }

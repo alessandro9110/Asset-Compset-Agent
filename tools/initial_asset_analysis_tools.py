@@ -1,8 +1,9 @@
 from langchain_core.tools import tool
 import os
 
-from langgraph.prebuilt import ToolNode
 
+from langgraph.prebuilt import ToolNode
+import openai
 
 import googlemaps
 from dotenv import load_dotenv
@@ -97,11 +98,65 @@ def get_distance_between_coordinates(point1: dict, point2: dict) -> dict:
 # Tools for Section 2 - Asset Dimensions
 # facciamo solo ricerche online
 
-# Tools for Section 3 - Asset Dimensions
+# Tools for Section 3 - Asset Quality
+def analyze_hotel_image_with_azure_openai(image_path_or_url: str) -> dict:
+    """
+    Sends an image to Azure OpenAI GPT-4o Vision endpoint and asks for an architectural analysis.
+    
+    Args:
+        image_path_or_url (str): Local path or URL to the hotel image.
+    
+    Returns:
+        dict: Analysis including architectural style, main materials, state of conservation, summary.
+    """
+    # Configura questi valori!
+    openai.api_type = "azure"
+    openai.api_base = os.environ["AZURE_OPENAI_ENDPOINT"]  # es: "https://<YOUR-RESOURCE-NAME>.openai.azure.com/"
+    openai.api_version = os.environ["OPENAI_API_VERSION"]            # aggiorna se necessario
+    openai.api_key = os.environ["AZURE_OPENAI_KEY"]        # la tua chiave Azure OpenAI
+
+    model = os.environ["AZURE_OPENAI_MODEL"]
+
+    prompt = (
+        "Analyze this image of a hotel and provide the following:\n"
+        "- The architectural style (e.g. modern, classic, Mediterranean, etc.)\n"
+        "- Main visible materials (e.g. glass, stone, wood, metal)\n"
+        "- General state of conservation (e.g. newly renovated, well-maintained, dated)\n"
+        'Return the result as a JSON object with the fields: "architectural_style", "main_materials", "state_of_conservation", "summary".'
+    )
+
+    # Gestione dell'immagine locale o remota
+    if image_path_or_url.startswith("http"):
+        image_input = {"type": "image_url", "image_url": {"url": image_path_or_url}}
+    else:
+        image_input = {"type": "image_file", "image_file": open(image_path_or_url, "rb")}
+
+    messages = [
+        {"role": "user", "content": [prompt, image_input]}
+    ]
+
+    # Chiamata all’endpoint vision di Azure OpenAI
+    response = openai.chat.completions.create(
+        model=model,        # Qui inserisci il nome del deployment Azure
+        messages=messages,
+        max_tokens=512
+    )
+    output = response.choices[0].message.content
+
+    # Se vuoi direttamente il JSON, puoi fare:
+    try:
+        import json
+        output_json = json.loads(output)
+        return output_json
+    except Exception:
+        # fallback: ritorna la stringa
+        return {"raw_response": output}
+
+
 
 # List of tools for initial asset assessment
 # These tools will be used by the initial asset assessment agent to gather information about assets and their locations.
-initial_asset_assessment_list = [get_coordinates
+initial_asset_analysis_list = [get_coordinates
                                  , calculate_distance_to_city_centers
                                  , get_distance_between_coordinates
                                  , web_search
@@ -109,4 +164,4 @@ initial_asset_assessment_list = [get_coordinates
 
 # Create a ToolNode for the initial asset assessment tools
 # This allows the tools to be used in a structured way within the LangGraph framework.
-initial_asset_assessment_tools = ToolNode(initial_asset_assessment_list)
+initial_asset_analysis_tools = ToolNode(initial_asset_analysis_list)

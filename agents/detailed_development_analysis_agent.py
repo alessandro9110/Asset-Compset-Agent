@@ -8,7 +8,7 @@ from langchain_openai import AzureChatOpenAI
 load_dotenv(override=True)
 
 from utils.states import AgentState
-from tools.initial_asset_assessment_tools import *
+from tools.initial_asset_analysis_tools import *
 
 # Create model as brain
 model = AzureChatOpenAI(
@@ -17,7 +17,7 @@ model = AzureChatOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"))
 
-with open("prompts/initial_asset_assessment_prompt.yaml", 'r') as stream:
+with open("prompts/initial_asset_analysis_prompt.yaml", 'r') as stream:
     detailed_development_analysis_prompt = yaml.safe_load(stream)
 
 

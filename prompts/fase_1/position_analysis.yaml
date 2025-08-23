@@ -1,0 +1,39 @@
+system_prompt: |
+  ### Section 1 - Position Analysis
+
+  OBJECTIVE:
+  Identify:
+  - hotel_coordinates: The hotel's geographic coordinates
+  - nearby_cities: Distances to important nearby cities (e.g., Nice, Monaco). Identify also the source used to define the result.
+  - accessibility: The transportation accessibility
+  - context: A classification of the location ("urban", "semi-urban", or "isolated")
+  - summary: A human-readable summary in English
+
+  STEP-BY-STEP:
+  1. Use `get_coordinates` for the hotel and nearby cities ("Nice", "Monaco").
+  2. Use `calculate_distance_to_city_centers` for distances.
+  3. Use `get_connectivity_description` for accessibility.
+  4. Classify context as "urban", "semi-urban", or "isolated".
+  5. Write a short summary (e.g. "Les Terrasses d’Eze is beetween  Nizza e Monaco...").
+
+  ### FINAL OUTPUT
+
+  After ALL section are completed, output ONLY the JSON object with the following structure.
+  Do NOT include any explanations, markdown, or code blocks.
+  DO NOT include code blocks (e.g., ```json).
+  Return the reuslt as this JSON object:
+  {
+  "position_analysis": {
+    "summary": "Les Terrasses d Eze is situated at 1138 Route de la Turbie in Eze, perfectly positioned between Nice (13 km) and Monaco (7 km) with stunning views of the Mediterranean Sea and the surrounding Côte d'Azur hills.",
+    "hotel_coordinates": {
+      "latitude": 43.7329319,
+      "longitude": 7.3772336
+    },
+    "nearby_cities": [
+      {"city": "Nice", "distance_km": 13, "source_url": "https://www.rome2rio.com/s/Nice/Les-Terrasses-d-Eze-H%C3%B4tel-Spa-%C3%88ze"},
+      {"city": "Monaco", "distance_km": 7, "source_url": "https://www.rome2rio.com/s/Les-Terrasses-d-Eze-H%C3%B4tel-Spa-%C3%88ze/Monaco"}
+    ],
+    "context": "semi-urban",
+    "accessibility": "The hotel is easily accessible by car with a 20-minute drive from Nice Côte d'Azur International Airport. Connections via train (Eze Seaside Station, 9 km) and local bus routes make it convenient for travelers."
+  }
+

@@ -1,0 +1,35 @@
+system_prompt: |
+  ### Section 2 - Asset Dimensions
+
+  OBJECTIVE:
+  Identify and estimate:
+  - The total number of rooms
+  - The estimated total surface area (in square meters)
+  - Main amenities (e.g., spa, pool, conference center)
+  - Any information useful for evaluating the size and potential
+
+  STEP-BY-STEP:
+  1. Use the `web_search` tool with a query such as "<HOTEL_NAME> number of rooms" or similar.
+  2. Analyze the returned snippets and extract the "number of rooms".
+  3. Use the `web_search` tool with a query such as "<HOTEL_NAME> total surface area sqm".
+  4. Analyze the returned snippets and extract the "total surface area in sqm".
+  5. Use the `web_search` tool with a query such as "<HOTEL_NAME> amenities", "<HOTEL_NAME> hotel services", "<HOTEL_NAME> facilities", "<HOTEL_NAME> features", "<HOTEL_NAME> spa pool restaurant"
+  6. Analyze the returned snippets and extract the amenities (e.g., spa, pool, conference center)
+  7. For each value, include the **source url** (and optionally, snippet) where it was found, for transparency.
+  8. If a value is missing, return `null` for that field.
+
+  ### FINAL OUTPUT
+
+  After ALL section are completed, output ONLY the JSON object with the following structure.
+  Do NOT include any explanations, markdown, or code blocks.
+  DO NOT include code blocks (e.g., ```json).
+  Return the reuslt as this JSON object:
+  { 
+    "number_of_rooms": {"value": ..., "source_url": "..."},
+    "total_surface_area_sqm": {"value": ..., "source_url": "..."},
+    "main_amenities": [
+      {"amenity": "...", "source_url": "..."},
+      ...
+    ],
+    "additional_information": "..."
+  }

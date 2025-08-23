@@ -15,57 +15,23 @@ from IPython.display import Image, display
 
 # Import agent packages
 from utils.states import AgentState
-from tools.analisi_asset import *
-from tools.analisi_compset import *
-from tools.compset import *
+
+from agents.initial_asset_analysis_agent import initial_asset_analysis_agent
+from tools.initial_asset_analysis_tools import initial_asset_analysis_tools
+
+from agents.competitive_set_agent import competitive_set_agent
+from tools.competitive_set_tools import competitive_set_tools
+
+from agents.detailed_development_analysis_agent import detailed_development_analysis_agent
+from tools.detailed_development_analysis_tools import detailed_development_analysis_tools
 
 import streamlit as st
 
 load_dotenv(override=True)
 
 
-# Create model as brain
-model = AzureChatOpenAI(
-    azure_deployment=os.getenv("AZURE_OPENAI_MODEL"),
-    api_version=os.getenv("OPENAI_API_VERSION"),
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"))
-
-
-# Create tools
-tools_for_analisi_asset = [get_coordinates, calculate_distance_to_city_centers, get_distance_between_coordinates, download_satellite_image, estimate_scale, calculate_area]
-tools_for_compset = [get_coordinates]
-tools_for_analisi_compset = [get_coordinates]
-
-
-model_with_tools_for_compset         = model.bind_tools(tools_for_compset, parallel_tool_calls=False)
-model_with_tools_for_analisi_compset = model.bind_tools(tools_for_analisi_compset, parallel_tool_calls=False)
-
-# Import prompts
-
-sys_msg_compset = SystemMessage(content=""" """)
-sys_msg_analisi_compset = SystemMessage(content=""" """)
-
-# Define Agents
-######################## ANALISI ASSET AGENT ###################################################
-
-
-######################## COMPSET AGENT #########################################################
-def compset_agent(state: AgentState):
-   messages = [model_with_tools_for_compset.invoke([sys_msg_compset] + state["messages"])]
-   compset_result = messages[-1]
-   return {"messages": messages, "compset_result": compset_result}
-
-######################## ANALISI COMPSET AGENT #################################################
-def analisi_compset_agent(state: AgentState):
-   # Construct the final answer from the arguments of the last call
-   messages = [model_with_tools_for_analisi_compset.invoke([sys_msg_analisi_compset] + state["messages"])]
-   analisi_compset_result = messages[-1]
-   return {"messages": messages, "analisi_compset_result": analisi_compset_result}
-
-
-
-# Define the function that determines whether to continue or not
+# Define the function that determines whether to continue or not.
+# if not go to other agent
 def should_continue(state: AgentState):
     messages = state["messages"]
     last_message = messages[-1]
@@ -80,50 +46,54 @@ def should_continue(state: AgentState):
 builder = StateGraph(AgentState)
 
 # Define nodes: these do the work for the Agent 
-builder.add_node("analisi_asset", analisi_asset_agent)
-builder.add_node("tools_for_analisi_asset", ToolNode(tools_for_analisi_asset))
+### FASE 1: ANALISI INIZIALE DELL'ASSET
+builder.add_node("initial_asset_assessment", initial_asset_analysis_agent)
+builder.add_node("tools_for_initial_asset_assessment", initial_asset_analysis_tools)
 
-builder.add_node("compset", compset_agent)
-builder.add_node("tools_for_compset", ToolNode(tools_for_compset))
+### FASE 2: CREAZIONE DEL COMPETITIVE SET (COMPSET)
+builder.add_node("competitive_set", competitive_set_agent)
+builder.add_node("tools_for_competitive_set", competitive_set_tools)
 
-builder.add_node("analisi_compset", analisi_compset_agent)
-builder.add_node("tools_for_analisi_compset", ToolNode(tools_for_analisi_compset))
+### FASE 3: ANALISI DETTAGLIATA DEL COMPSET
+builder.add_node("detailed_development_analysis", detailed_development_analysis_agent)
+builder.add_node("tools_for_detailed_development_analysis", detailed_development_analysis_tools)
 
 #builder.add_node("respond",response_analisi_asset)
+# Nodo aggregatore
 
 # Define edges: these determine how the control flow moves
-builder.add_edge(START, "analisi_asset")
+builder.add_edge(START, "initial_asset_assessment")
 builder.add_conditional_edges(
-    "analisi_asset",
+    "initial_asset_assessment",
     should_continue,
     {
-        "continue": "tools_for_analisi_asset",
-        "next_agent": "compset",
+        "continue": "tools_for_initial_asset_assessment",
+        "next_agent": "competitive_set",
     },
 )
-builder.add_edge("tools_for_analisi_asset", "analisi_asset")
+builder.add_edge("tools_for_initial_asset_assessment", "initial_asset_assessment")
 
 builder.add_conditional_edges(
-    "compset",
+    "competitive_set",
     should_continue,
     {
-        "continue": "tools_for_compset",
-        "next_agent": "analisi_compset",
+        "continue": "tools_for_competitive_set",
+        "next_agent": "detailed_development_analysis",
     },
 )
 
-builder.add_edge("tools_for_compset", "compset")
+builder.add_edge("tools_for_competitive_set", "competitive_set")
 
 builder.add_conditional_edges(
-    "analisi_compset",
+    "detailed_development_analysis",
     should_continue,
     {
-        "continue": "tools_for_analisi_compset",
+        "continue": "tools_for_detailed_development_analysis",
         "next_agent": END,
     },
 )
 
-builder.add_edge("tools_for_analisi_compset", "analisi_compset")
+builder.add_edge("tools_for_detailed_development_analysis", "detailed_development_analysis")
 #builder.add_edge("respond", END)
 
 react_graph = builder.compile()
@@ -163,4 +133,5 @@ with st.chat_message("assistant"):
     messages = react_graph.invoke({"messages": st.session_state.messages}, interrupt_before="analisi_compset", config={"recursion_limit": 1000})
     last_msg = messages["messages"][-1].content
     st.session_state.messages.append(AIMessage(content=last_msg))  # Add that last message to the st_message_state
-    msg_placeholder.write(messages["messages"])
+    #msg_placeholder.write(messages["messages"])
+    
